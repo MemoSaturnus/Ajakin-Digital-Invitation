@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ajakin — Pesan Undangan Digital</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --bg: #14121a; --panel: #1d1a26; --panel2: #252134; --line: #332e45;
+    --txt: #f2eefb; --muted: #a79fc0; --acc: #e56b8c; --acc2: #e8c47a; --ok: #4ade80; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--txt); min-height: 100vh; }
+  header { text-align: center; padding: 32px 20px 8px; }
+  header .logo { font-size: 2.4rem; }
+  header h1 { font-size: 1.5rem; margin: 8px 0 4px; }
+  header p { color: var(--muted); font-size: .9rem; }
+  #steps-bar { display: flex; justify-content: center; gap: 8px; padding: 20px; }
+  .s-dot { width: 34px; height: 34px; border-radius: 50%; background: var(--panel2); border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center; font-size: .82rem; color: var(--muted); font-weight: 700; }
+  .s-dot.active { background: var(--acc); border-color: var(--acc); color: #fff; }
+  .s-dot.done { background: #2c4a38; border-color: var(--ok); color: var(--ok); }
+  main { max-width: 640px; margin: 0 auto; padding: 0 20px 60px; }
+  .step { display: none; animation: fadeUp .4s ease; }
+  .step.show { display: block; }
+  @keyframes fadeUp { from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none} }
+  h2 { font-size: 1.25rem; margin-bottom: 6px; }
+  .sub { color: var(--muted); font-size: .88rem; margin-bottom: 20px; }
+
+  .paket-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .paket { background: var(--panel); border: 2px solid var(--line); border-radius: 18px; padding: 24px 18px;
+    cursor: pointer; text-align: center; transition: border-color .2s, transform .2s; }
+  .paket:hover { transform: translateY(-3px); }
+  .paket.active { border-color: var(--acc); }
+  .paket .icon { font-size: 2.4rem; margin-bottom: 10px; }
+  .paket b { display: block; font-size: 1.02rem; margin-bottom: 6px; }
+  .paket p { font-size: .8rem; color: var(--muted); line-height: 1.6; margin-bottom: 10px; }
+  .paket .harga { color: var(--acc2); font-weight: 700; font-size: 1.05rem; }
+  .paket .harga small { display: block; font-size: .72rem; color: var(--muted); font-weight: 400; margin-top: 2px; }
+  .paket .sub-lines span { display: block; line-height: 1.45; }
+  .paket .sub-lines .hl { font-weight: 700; font-size: .92rem; color: var(--txt); }
+  .paket.wide { grid-column: 1 / -1; }
+
+  .lini-title { font-size: .78rem; letter-spacing: 2px; text-transform: uppercase; color: var(--acc2); margin: 18px 0 10px; }
+  .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tpl { background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 14px; cursor: pointer; transition: border-color .2s; }
+  .tpl.active { border-color: var(--acc); }
+  .tpl .dots { display: flex; gap: 5px; margin-bottom: 8px; }
+  .tpl .dots i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); }
+  .tpl b { display: block; font-size: .88rem; margin-bottom: 2px; }
+  .tpl span { font-size: .74rem; color: var(--muted); }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: 6px; }
+  .field label .req { color: var(--acc); }
+  .field input, .field textarea { width: 100%; background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 10px; color: var(--txt); padding: 11px 13px; font-size: .92rem; font-family: inherit; }
+  .field textarea { min-height: 80px; resize: vertical; }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--acc); }
+  .field .err { color: #ff8f9f; font-size: .76rem; margin-top: 4px; display: none; }
+  .field.invalid input { border-color: #ff8f9f; }
+  .field.invalid .err { display: block; }
+  .note { font-size: .78rem; color: var(--muted); background: var(--panel2); border-radius: 10px; padding: 10px 13px; margin-bottom: 14px; line-height: 1.6; }
+
+  .nav { display: flex; gap: 10px; margin-top: 24px; }
+  .btn { flex: 1; border: none; border-radius: 12px; padding: 14px; font-size: .95rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .btn-next { background: linear-gradient(135deg, var(--acc), #c94f72); color: #fff; }
+  .btn-back { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); flex: 0 0 110px; }
+  .btn-wa { background: #22a35c; color: #fff; }
+  .btn-copy { background: var(--panel2); color: var(--txt); border: 1px solid var(--line); }
+
+  .summary { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .summary h3 { font-size: .8rem; letter-spacing: 2px; text-transform: uppercase; color: var(--acc2); margin-bottom: 12px; }
+  .srow { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: .88rem; }
+  .srow:last-child { border: none; }
+  .srow .k { color: var(--muted); flex: 0 0 130px; }
+  .srow .v { text-align: right; word-break: break-word; }
+  .total { display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 700; padding-top: 12px; }
+  .total .v { color: var(--acc2); }
+  #done-msg { display: none; text-align: center; padding: 20px; }
+  #done-msg.show { display: block; animation: fadeUp .5s ease; }
+  #done-msg .big { font-size: 3rem; margin-bottom: 12px; }
+  @media (max-width: 520px) { .paket-grid, .tpl-grid { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .step { animation: none; } .paket:hover { transform: none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">💌</div>
+  <h1>Ajakin</h1>
+  <p>Undangan digital kasual & formal — pesan dalam 2 menit</p>
+</header>
+
+<div id="steps-bar"></div>
+
+<main>
+  <!-- LANGKAH 1: produk -->
+  <div class="step" id="step1">
+    <h2>Pilih produk</h2>
+    <div class="lini-title">📋 Template — cukup request isinya</div>
+    <div class="paket-grid">
+      <div class="paket" data-produk="tpl_kasual">
+        <div class="icon">💕</div><b>Template Kasual</b>
+        <p>Pilih template yang kamu suka, isi data acaranya, terima undangan digitalmu yang sudah jadi</p>
+        <div class="harga" data-harga="tpl_kasual">Rp35.000</div>
+      </div>
+      <div class="paket" data-produk="tpl_formal">
+        <div class="icon">🤍</div><b>Template Formal</b>
+        <p>Untuk wedding, aqiqah, wisuda, dan momen formal lainnya. Pilih template, isi data, terima undangannya</p>
+        <div class="harga" data-harga="tpl_formal">Rp149.000</div>
+      </div>
+    </div>
+    <div class="lini-title">✨ Custom — desain dari nol buat kamu</div>
+    <div class="paket-grid">
+      <div class="paket" data-produk="custom_kasual">
+        <div class="icon">🎨</div><b>Custom Kasual</b>
+        <p>Punya bayangan desain sendiri?<br>Request tema, warna, dan isi sesukamu<br>Kami buatkan khusus dari nol</p>
+        <div class="harga" data-harga="custom_kasual">Rp80.000</div>
+      </div>
+      <div class="paket" data-produk="custom_formal">
+        <div class="icon">💎</div><b>Custom Formal</b>
+        <p>Desain eksklusif dari nol untuk hari besarmu. Setiap detail mengikuti maumu</p>
+        <div class="harga" data-harga="custom_formal">Rp349.000</div>
+      </div>
+    </div>
+    <div class="lini-title">🔁 Langganan bulanan</div>
+    <div class="paket-grid">
+      <div class="paket wide" data-produk="subscribe">
+        <div class="icon">📅</div><b>Subscribe Kasual</b>
+        <p class="sub-lines"><span>Sebulan penuh bebas request undangan kasual</span><span class="hl">maks 10x</span><span>Templat boleh ganti-ganti. Mau desain khusus? Tambah 50rb aja</span><span>Perpanjang tiap bulan via WhatsApp</span></p>
+        <div class="harga" data-harga="subscribe">Rp121.000<small>per bulan</small></div>
+      </div>
+    </div>
+    <div class="nav"><button class="btn btn-next" id="next1">Lanjut →</button></div>
+  </div>
+
+  <!-- LANGKAH 2: template ATAU brief custom -->
+  <div class="step" id="step2">
+    <div id="step2-template">
+      <h2>Pilih template</h2>
+      <p class="sub">Klik salah satu — bisa diganti nanti via WhatsApp</p>
+      <div class="lini-title">💕 Lini Kasual</div>
+      <div class="tpl-grid" id="tpl-kasual"></div>
+      <div class="lini-title">🤍 Lini Formal</div>
+      <div class="tpl-grid" id="tpl-formal"></div>
+    </div>
+    <div id="step2-brief" style="display:none">
+      <h2>Brief custom</h2>
+      <p class="sub">Ceritakan maumu — desain dibuat dari nol khusus untukmu</p>
+      <div class="field" data-req="1">
+        <label>Tema / konsep yang diinginkan <span class="req">*</span></label>
+        <input type="text" id="b-tema" placeholder="mis. piknik musim panas, elegan gold-black">
+        <div class="err">Wajib diisi</div>
+      </div>
+      <div class="field">
+        <label>Gaya desain</label>
+        <input type="text" id="b-gaya" placeholder="mis. minimalis, floral, playful, mewah">
+      </div>
+      <div class="field" data-req="1">
+        <label>Isi undangan <span class="req">*</span></label>
+        <textarea id="b-isi" placeholder="Nama, tanggal, tempat, susunan acara, dan semua teks yang mau tampil"></textarea>
+        <div class="err">Wajib diisi</div>
+      </div>
+      <div class="field">
+        <label>Referensi (opsional)</label>
+        <input type="text" id="b-ref" placeholder="Link contoh desain yang kamu suka">
+      </div>
+      <div class="note">💡 Makin detail brief-mu, makin sesuai hasilnya dengan bayanganmu</div>
+    </div>
+    <div class="nav">
+      <button class="btn btn-back" data-back="1">← Kembali</button>
+      <button class="btn btn-next" id="next2">Lanjut →</button>
+    </div>
+  </div>
+
+  <!-- LANGKAH 3: data undangan (khusus template) -->
+  <div class="step" id="step3">
+    <h2>Data undangan</h2>
+    <p class="sub">Isi yang kamu tahu — sisanya kami yang lengkapi</p>
+    <div class="note">💡 Data detail (susunan acara, rekening, dll) bisa dilengkapi menyusul via WhatsApp setelah order</div>
+    <div id="data-fields"></div>
+    <div class="nav">
+      <button class="btn btn-back" data-back="2">← Kembali</button>
+      <button class="btn btn-next" id="next3">Lanjut →</button>
+    </div>
+  </div>
+
+  <!-- LANGKAH 4: data customer -->
+  <div class="step" id="step4">
+    <h2>Data kamu</h2>
+    <p class="sub">Untuk pengiriman hasil & konfirmasi pembayaran</p>
+    <div class="field" data-req="1">
+      <label>Nama <span class="req">*</span></label>
+      <input type="text" id="c-nama" placeholder="Nama kamu">
+      <div class="err">Wajib diisi</div>
+    </div>
+    <div class="field" data-req="1">
+      <label>No. WhatsApp <span class="req">*</span></label>
+      <input type="text" id="c-wa" placeholder="62812xxxxxxx">
+      <div class="err">Wajib diisi (format: 628xx)</div>
+    </div>
+    <div class="field">
+      <label>Email (opsional)</label>
+      <input type="text" id="c-email" placeholder="nama@email.com">
+    </div>
+    <div class="field">
+      <label>Daftar tamu untuk QR check-in (opsional)</label>
+      <textarea id="c-tamu" rows="4" placeholder="Satu nama per baris, mis:&#10;Budi Santoso&#10;Sari Wijaya"></textarea>
+    </div>
+    <div class="nav">
+      <button class="btn btn-back" data-back="3">← Kembali</button>
+      <button class="btn btn-next" id="next4">Lihat Ringkasan →</button>
+    </div>
+  </div>
+
+  <!-- LANGKAH 5: ringkasan -->
+  <div class="step" id="step5">
+    <h2>Ringkasan order</h2>
+    <p class="sub">Periksa lagi sebelum dikirim</p>
+    <div class="summary" id="summary-box"></div>
+    <div class="nav" style="flex-direction:column">
+      <button class="btn btn-wa" id="btn-wa">📩 Kirim Order via WhatsApp</button>
+      <button class="btn btn-back" data-back="4" style="flex:1">← Kembali</button>
+    </div>
+    <div id="done-msg">
+      <div class="big">✅</div>
+      <h2>Order terkirim!</h2>
+      <p class="sub">Kami akan menghubungimu via WhatsApp untuk pembayaran & pelengkapan data</p>
+      <div id="tamu-extra" style="display:none;margin-top:16px">
+        <p class="sub">Daftar tamu (<span id="tamu-count"></span> nama) kepanjangan untuk satu pesan WhatsApp — sebagian sudah ikut terkirim.</p>
+        <button class="btn" id="btn-salin-tamu" onclick="salinTamu()">📋 Salin Daftar Tamu Lengkap</button>
+        <p class="sub" style="margin-top:8px">Setelah pesan order terkirim, <b>tempel (paste)</b> daftarnya di chat WhatsApp yang sama.</p>
+        <p class="sub" id="tamu-copied" style="display:none">✅ Tersalin — tinggal tempel di chat WhatsApp</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const TEMPLATES_META = [{"id":"date-invite","name":"Ajakan Jalan","desc":"Romantis klasik","lini":"kasual","config":{"untuk":"Sayang","dari":"— dengan sayang, Aku","pesanPembuka":"Aku sudah lama ingin mengajakmu pergi berdua. Bukan acara besar, bukan sesuatu yang formal — hanya aku, kamu, dan waktu yang berjalan pelan.","tanggal":"Sabtu, 18 Oktober 2026","waktu":"19.00 — selesai","tempat":"Cafe Senja","alamat":"Jl. Kenangan No. 5 — meja pojok favorit kita","targetCountdown":"2026-10-18T19:00:00","pesanAkhir":"Aku sudah tidak sabar. Screenshot halaman ini dan kirim ke aku sebagai bukti kamu setuju ya 😉"},"palette":["#1a0f16","#2a1420","#f4a7b9","#e56b8c","#e8c47a"]},{"id":"date-picker","name":"Kamu yang Pilih","desc":"Penerima pilih tempat & makanan","lini":"kasual","config":{"untuk":"Sayang","dari":"— dengan sayang, Aku","pesanPembuka":"Aku traktir kamu jalan. Tapi aku bingung mau ke mana… jadi aku serahkan ke ahlinya: kamu. Pilih yang paling kamu mau, sisanya biar aku yang urus. 😌","tanggal":"Sabtu, 18 Oktober 2026","opsiJalan":[{"icon":"🏖️","nama":"Pantai","desc":"Sunset + angin sepoi-sepoi"},{"icon":"☕","nama":"Cafe Hits","desc":"Ngopi cantik berdua"},{"icon":"🎬","nama":"Nonton","desc":"Film pilihanmu, popcorn aku yang beli"},{"icon":"🌳","nama":"Taman Kota","desc":"Piknik sore santai"}],"opsiMakan":[{"icon":"🍜","nama":"Mie Ayam","desc":"Hangat & ngenyangin"},{"icon":"🍣","nama":"Sushi","desc":"Agak fancy dikit"},{"icon":"🍗","nama":"Ayam Geprek","desc":"Level pedas terserah kamu"},{"icon":"🧋","nama":"Jajan Boba","desc":"Yang manis-manis aja"}],"pesanAkhir":"Pilihanmu sudah dikunci. Screenshot halaman ini dan kirim ke aku — biar aku bisa siap-siap. Sampai jumpa di hari-H! 🤍"},"palette":["#1a0f16","#2a1420","#f4a7b9","#e56b8c","#e8c47a"]},{"id":"playful-date","name":"Kencan Ceria","desc":"Playful cerah","lini":"kasual","config":{"untuk":"Bestie","dari":"— dari calon teman jalanmu 😜","pesanPembuka":"Aku mau ngajak kamu jalan. Syaratnya gampang: jangan ja'im, jangan sok sibuk, dan siapin perut. Makan enak, ketawa bareng, pulang kenyang. Deal?","tanggal":"Sabtu, 18 Oktober 2026","waktu":"16.00 — sepuasnya","tempat":"Parkiran Mall Ceria","alamat":"Deket pintu masuk, jangan nyasar ya","targetCountdown":"2026-10-18T16:00:00","pesanAkhir":"Keputusan tepat! Screenshot halaman ini dan kirim ke aku biar nggak bisa kabur. Sampai ketemu! 🥳"},"palette":["#FFF8E7","#FF6B6B","#e85555","#FFD93D","#4ECDC4"]},{"id":"elegant-dinner","name":"Makan Malam Elegan","desc":"Minimalis krem-emas","lini":"kasual","config":{"untuk":"Nona","dari":"Dengan hormat","dariSub":"yang menanti jawaban Anda","pesanPembuka":"Bukan sekadar makan malam. Saya ingin satu malam yang tenang — percakapan yang mengalir, hidangan yang dinikmati perlahan, dan kebersamaan yang tidak terburu-buru.","tanggal":"Sabtu, 18 Oktober 2026","waktu":"19.30","tempat":"Maison Lumière","alamat":"Jl. Kemang Raya No. 12 — meja tepi jendela sudah dipesan","dressCode":"Smart Elegant","dressSub":"Kenakan yang membuat Anda merasa istimewa","pesanPersuasif":"“Yakin? Meja untuk dua sudah dipesan…”","pesanPersuasifSub":"Saya mengerti kesibukan Anda. Tapi malam itu saya siapkan khusus — hanya untuk kita berdua. Mungkin bisa dipertimbangkan sekali lagi?","pesanAkhir":"Saya akan memastikan malam itu sempurna. Mohon screenshot halaman ini dan kirimkan kepada saya sebagai konfirmasi kehadiran Anda."},"palette":["#FAF7F2","#1A1A1A","#B8965A","#6f6a61"]},{"id":"anniversary-gold","name":"Anniversary Emas","desc":"Mewah hitam-emas","lini":"kasual","config":{"untuk":"Sayang","dari":"dengan cinta, Aku","tahunKe":"1","pesanPembuka":"Satu tahun yang penuh tawa, cerita, dan hal-hal kecil yang ternyata paling berkesan. Terima kasih sudah memilih bertahan bersamaku.","momen":[{"tanggal":"Januari 2026","judul":"Pertemuan Pertama","cerita":"Siapa sangka obrolan ringan di kafe itu jadi awal dari segalanya. Kamu tertawa, dan aku langsung tahu."},{"tanggal":"Mei 2026","judul":"Hujan-Hujanan Bareng","cerita":"Kehujanan di tengah jalan, payung cuma satu, tapi kita malah tertawa paling keras hari itu."},{"tanggal":"September 2026","judul":"Malam Minggu Sederhana","cerita":"Tidak ke mana-mana, cuma makan mie instan berdua. Tapi rasanya seperti perayaan."}],"pesanAkhir":"Keputusan terbaik yang pernah kamu buat. Screenshot halaman ini dan kirim ke aku sebagai bukti resmi ya 😉"},"palette":["#0C0C0E","#16161a","#D4AF37","#e8c96a","#F5E6C4"]},{"id":"birthday-surprise","name":"Kejutan Ultah","desc":"Kotak kado acak","lini":"kasual","config":{"untuk":"Sayang","umur":"17","dari":"— dengan sayang, Aku","pesanPembuka":"Hari ini harimu! Dan aku sudah menyiapkan 3 kotak kado. Tapi hati-hati… cuma satu yang berisi hadiah sebenarnya. Pilih dengan instingmu! 😏","kotakLucu":[{"icon":"🧦","judul":"Kaos Kaki Sebelah","isi":"Pasangannya hilang dicuri mesin cuci. Semoga beruntung menemukan jodohnya!"},{"icon":"🪨","judul":"Batu Kali Premium","isi":"Dipungut langsung dari sungai, sudah dicuci bersih. Koleksi langka, cuma ada satu!"}],"ucapan":"Selamat ulang tahun ya! Semoga di umur yang baru ini semua yang kamu mau tercapai, sehat selalu, dan makin sayang sama aku. Eh.","pesanKejutan":"🎁 \u003cb>Hadiah spesial dariku:\u003c/b> traktiran makan malam romantis berdua, tempat & waktu kamu yang tentukan. Berlaku kapan saja!","pesanAkhir":"Hore! Screenshot halaman ini dan kirim ke aku biar traktiranmu resmi tercatat. Selamat ulang tahun sekali lagi! 🥳"},"palette":["#14101F","#1f1830","#7C3AED","#EC4899","#3B82F6"]},{"id":"picnic-date","name":"Piknik Ceria","desc":"Outdoor + checklist","lini":"kasual","config":{"untuk":"Sayang","dari":"— yang ngajak, Aku","pesanPembuka":"Cuacanya lagi bagus banget. Gimana kalau kita kabur sejenak dari rutinitas, duduk di atas tikar, makan bekal bareng, dan ngobrol sampai sore?","tanggal":"Minggu, 19 Oktober 2026","jam":"08.00 — 11.00","lokasi":"Taman Kota Ceria","alamat":"Pintu masuk selatan, dekat danau","barang":[{"icon":"🧺","nama":"Tikar piknik"},{"icon":"🍱","nama":"Bekal makan siang"},{"icon":"📷","nama":"Kamera"},{"icon":"🧃","nama":"Minuman dingin"},{"icon":"🎸","nama":"Gitar (kalau sempat)"},{"icon":"🕶️","nama":"Kacamata hitam"}],"pesanAkhir":"Jangan lupa bawa senyum terbaikmu. Screenshot halaman ini dan kirim ke aku sebagai tanda kamu setuju ya 😉"},"palette":["#87CEEB","#D6F0FD","#7CB342","#558B2F","#FFD54F"]},{"id":"movie-night","name":"Movie Night","desc":"Tiket bioskop","lini":"kasual","config":{"untuk":"Sayang","dari":"— TEMAN NONTONMU, AKU","pesanPembuka":"Malam minggu enaknya rebahan sambil nonton. Tapi aku nggak mau egois — genrenya kamu yang tentuin. Pilih yang paling kamu pengen tonton!","tanggal":"Jumat, 24 Oktober 2026","jam":"19.30 — selesai","opsiGenre":[{"icon":"💕","nama":"Romantis","desc":"Baper bareng, pegangan tangan","film":"Film romantis pilihanmu"},{"icon":"😂","nama":"Komedi","desc":"Ketawa sampai perut sakit","film":"Film komedi pilihanmu"},{"icon":"👻","nama":"Horor","desc":"Takut-takut manja","film":"Film horor pilihanmu"},{"icon":"✨","nama":"Animasi","desc":"Seru dan menghangatkan hati","film":"Film animasi pilihanmu"}],"pesanAkhir":"Tiketmu sudah dicetak! Screenshot tiketnya dan kirim ke aku sebagai bukti kamu setuju. Aku siapkan popcorn dan tempat terbaik 🎬"},"palette":["#0A0A12","#14141f","#E50914","#A3060E","#FFC107"]},{"id":"retro-mixtape","name":"Mixtape Retro","desc":"Synthwave 80an","lini":"kasual","config":{"untuk":"Sayang","dari":"— DJ hatimu","judulKaset":"MIXTAPE UNTUKMU","pesanPembuka":"Setiap judul lagu di kaset ini adalah metafora. Ketuk tiap lagu untuk memutarnya dan baca apa maksudku sebenarnya.","tracks":[{"judul":"Senyum Pagi Hari","pesan":"Sejak pertama lihat senyummu, pagiku tidak pernah sama lagi. Rasanya seperti lagu favorit yang tidak pernah bosan diputar ulang.","nada":[523.25,659.25,783.99]},{"judul":"Neon di Matamu","pesan":"Waktu lampu kota menyala malam itu, aku sadar: tidak ada cahaya yang lebih terang dari caramu menatapku.","nada":[392,523.25,659.25]},{"judul":"Jalan Pulang Berdua","pesan":"Jarak yang jauh terasa dekat kalau yang jalan di sebelahmu adalah orang yang tepat. Aku mau itu kamu. Terus.","nada":[440,523.25,659.25]},{"judul":"Jangan Pernah Berhenti","pesan":"Kalau hidup ini kaset, aku mau lagu tentang kita diputar terus. Tanpa rewind, tanpa stop. Mau?","nada":[659.25,783.99,1046.5]}],"tanggal":"Sabtu, 18 Oktober 2026","tempat":"Nonton + makan malam","alamat":"Aku yang atur semuanya, kamu tinggal datang 😎","pesanAkhir":"Kasetnya sudah habis diputar. Screenshot halaman ini dan kirim ke aku sebagai tanda kamu mau ya 😉"},"palette":["#1A0B2E","#2B1152","#FF2E88","#00E5FF","#FFE600"]},{"id":"sakura-letter","name":"Surat Sakura","desc":"Puitis tenang","lini":"kasual","config":{"untuk":"kamu","dari":"— yang selalu memikirkanmu","paragrafSurat":["Pagi ini aku melihat kelopak sakura jatuh di depan jendela. Ia tidak terburu-buru, tidak berisik — hanya jatuh dengan anggun, seolah tahu persis ke mana ia harus pergi. Saat itu juga aku teringat padamu.","Ada orang yang datang ke hidup kita seperti musim: tidak bisa dipaksa, tidak bisa ditahan, tapi selalu dirindukan kehadirannya. Kamu adalah musim semi dalam hari-hariku yang panjang.","Aku tidak pandai merangkai kata-kata besar. Aku hanya tahu satu hal sederhana: setiap hal kecil terasa lebih indah kalau kamu ada di dekatku. Secangkir teh hangat, lagu yang pelan, jalan sore yang sepi — semuanya memanggil namamu.","Maka surat ini kutulis bukan untuk menuntut jawaban, melainkan untuk menitipkan perasaan. Sisanya, biarlah waktu dan hatimu yang memutuskan."],"tanggal":"Sabtu, 18 Oktober 2026","tempat":"Taman Sakura Kota","alamat":"Berjalan santai di bawah pohon yang sedang berbunga","pesanTunggu":"Tidak apa-apa. Seperti sakura yang mekar tepat pada waktunya, aku pun bisa menunggu waktu yang tepat untukmu. Kalau hatimu berubah, surat ini akan selalu terbuka. 🌸","pesanAkhir":"Surat ini sudah sampai ke hatimu. Screenshot halaman ini dan kirim kepadaku — sebagai tanda bahwa musim semi kita akan segera tiba."},"palette":["#FFFBF7","#FFFDF9","#FFB7C5","#FBDCE3","#4A4A4A"]},{"id":"wedding","name":"Pernikahan","desc":"Akad + resepsi, amplop digital","lini":"formal","config":{"salamPembuka":"Assalamu'alaikum Wr. Wb.","teksPembuka":"Dengan memohon rahmat dan ridha Allah SWT, kami bermaksud menyelenggarakan pernikahan putra-putri kami:","mempelaiPria":{"nama":"Ahmad Fauzi","putraDari":"Putra dari Bapak H. Muhammad Ali & Ibu Hj. Siti Aminah"},"mempelaiWanita":{"nama":"Nurul Hidayah","putriDari":"Putri dari Bapak H. Abdul Rahman & Ibu Hj. Fatimah Zahra"},"targetCountdown":"2026-12-20T08:00:00","akad":{"tanggal":"Ahad, 20 Desember 2026","jam":"08.00 — 10.00 WIB","tempat":"Masjid Agung Al-Azhar","alamat":"Jl. Sisingamangaraja No. 1, Jakarta Selatan"},"resepsi":{"tanggal":"Ahad, 20 Desember 2026","jam":"11.00 — 14.00 WIB","tempat":"Gedung Serbaguna Graha Cinta","alamat":"Jl. Sisingamangaraja No. 1, Jakarta Selatan"},"linkMaps":"https://maps.google.com/?q=Masjid+Agung+Al-Azhar+Jakarta","teksAmplop":"Doa restu Anda merupakan hadiah terindah. Namun jika berkenan memberikan tanda kasih, kami sediakan amplop digital berikut:","rekening":[{"bank":"BCA","nomor":"1234567890","atasNama":"Ahmad Fauzi"},{"bank":"Mandiri","nomor":"0987654321","atasNama":"Nurul Hidayah"}],"galeri":[{"src":"https://picsum.photos/seed/nikah1/700/700","caption":"Momen bahagia kami"},{"src":"https://picsum.photos/seed/nikah2/700/700","caption":"Langkah pertama bersama"},{"src":"https://picsum.photos/seed/nikah3/700/700","caption":"Tawa yang tak terlupakan"},{"src":"https://picsum.photos/seed/nikah4/700/700","caption":"Di bawah langit senja"},{"src":"https://picsum.photos/seed/nikah5/700/700","caption":"Janji suci terucap"},{"src":"https://picsum.photos/seed/nikah6/700/700","caption":"Menuju selamanya"}],"loveStory":[{"tanggal":"Januari 2020","judul":"Pertemuan Pertama","cerita":"Takdir mempertemukan kami di sebuah acara keluarga. Sapaan sederhana kala itu menjadi awal dari segalanya."},{"tanggal":"Juni 2021","judul":"Menjalin Kasih","cerita":"Seiring berjalannya waktu, pertemanan berubah menjadi rasa yang lebih dalam. Kami memutuskan melangkah bersama."},{"tanggal":"Maret 2024","judul":"Lamaran","cerita":"Dengan restu kedua keluarga, sebuah cincin menjadi saksi kesungguhan niat untuk menyempurnakan separuh agama."},{"tanggal":"Desember 2026","judul":"Menuju Pernikahan","cerita":"Kini saat yang dinanti tiba. Kami mengundang Anda menjadi saksi hari bahagia kami."}],"ucapanAwal":[{"nama":"Keluarga Besar","ucapan":"Barakallahu laka wa baraka alaika wa jamaa bainakuma fii khair."}],"bukuTamuEndpoint":"","nomorWA":"6281234567890","teksPenutup":"Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir untuk memberikan doa restu kepada kedua mempelai.","salamPenutup":"Wassalamu'alaikum Wr. Wb.","keluarga":"Kedua Mempelai & Keluarga Besar"},"palette":["#FAF6EF","#F3ECDD","#C9A24B","#A8823A","#7D8C6F"]},{"id":"aqiqah","name":"Aqiqah","desc":"Kelahiran bayi","lini":"formal","config":{"salamPembuka":"Assalamu'alaikum Wr. Wb.","teksPembuka":"Dengan penuh syukur ke hadirat Allah SWT, telah lahir putra kami:","jenisKelamin":"putra","namaBayi":"Muhammad Arka Pradipta","artiNama":"\"Lelaki mulia yang bercahaya seperti matahari pagi\"","ayah":"Budi Santoso","ibu":"Dewi Lestari","tanggalLahir":"Lahir pada Senin, 12 Oktober 2026","tanggal":"Sabtu, 18 Oktober 2026","jam":"09.00 — selesai","tempat":"Kediaman Bapak Budi Santoso","alamat":"Jl. Melati No. 12, Makassar","linkMaps":"https://maps.google.com/?q=Jl.+Melati+No.+12+Makassar","targetCountdown":"2026-10-18T09:00:00","rangkaian":["Pembukaan","Tausiyah","Doa & Pemotongan Rambut","Ramah Tamah"],"nomorWA":"6281234567890","teksPenutup":"Kehadiran Bapak/Ibu/Saudara/i merupakan doa dan kebahagiaan bagi keluarga kami.","salamPenutup":"Wassalamu'alaikum Wr. Wb.","keluarga":"Keluarga Bapak Budi Santoso"},"palette":["#FFFDF8","#F6F1E4","#BFE3C6","#5E9C6B","#E8C47A"]},{"id":"khitanan","name":"Khitanan","desc":"Formal biru-emas","lini":"formal","config":{"namaAnak":"Muhammad Fathir Alfarizi","anakKe":"Putra pertama","ayah":"Bapak H. Ahmad Suryana","ibu":"Ibu Hj. Ratna Dewi","tanggal":"Sabtu, 24 Oktober 2026","waktu":"09.00 WIB — selesai","tempat":"Kediaman Mempelai","alamat":"Jl. Mawar No. 12, Makassar","linkMaps":"https://maps.google.com/?q=Makassar","targetCountdown":"2026-10-24T09:00:00","rangkaian":[{"waktu":"09.00","acara":"Pembukaan & pembacaan doa"},{"waktu":"09.30","acara":"Prosesi khitanan"},{"waktu":"11.30","acara":"Ramah tamah & santap siang"},{"waktu":"13.00","acara":"Penutup"}],"nomorWA":"6281234567890","pesanPenutup":"Merupakan suatu kehormatan dan kebahagiaan bagi kami sekeluarga apabila Bapak/Ibu/Saudara/i berkenan hadir untuk memberikan doa restu kepada putra kami. Atas kehadiran serta doa yang tulus, kami mengucapkan terima kasih yang sebesar-besarnya."},"palette":["#FFFFFF","#F7FAFC","#2B6CB0","#1E4E8C","#C9A24B"]},{"id":"wisuda","name":"Wisuda","desc":"Navy akademis","lini":"formal","config":{"nama":"Rizky Pratama","gelar":"S.Kom.","universitas":"Universitas Hasanuddin","jurusan":"Teknik Informatika","ayah":"Bapak H. Muhammad Saleh","ibu":"Ibu Hj. Nurlaela","tanggal":"Sabtu, 31 Oktober 2026","waktu":"10.00 WITA — selesai","tempat":"Gedung Serbaguna Graha Pena","alamat":"Jl. Urip Sumoharjo No. 20, Makassar","linkMaps":"https://maps.google.com/?q=Makassar","targetCountdown":"2026-10-31T10:00:00","quote":"Pendidikan adalah senjata paling ampuh yang dapat digunakan untuk mengubah dunia.","quoteSumber":"— Nelson Mandela","nomorWA":"6281234567890","pesanPenutup":"Tiada kata yang dapat mengungkapkan rasa syukur kami selain terima kasih yang sebesar-besarnya atas doa dan dukungan Bapak/Ibu/Saudara/i selama ini. Kehadiran Anda akan menjadi kebahagiaan tersendiri bagi kami sekeluarga."},"palette":["#1A2B4A","#142239","#C9A24B","#E4CF9A","#FAF6EF"]},{"id":"ultah-formal","name":"Ultah Formal","desc":"Milestone mewah","lini":"formal","config":{"nama":"Bpk. H. Ahmad Suryana","usia":50,"sambutan":"Dengan penuh rasa syukur ke hadirat Tuhan Yang Maha Esa, kami bermaksud menyelenggarakan syukuran ulang tahun dan memohon kehadiran Bapak/Ibu/Saudara/i pada acara tersebut.","tanggal":"Sabtu, 25 Oktober 2026","tanggalISO":"2026-10-25T10:00:00","waktu":"10.00 WITA — selesai","tempat":"Gedung Serbaguna Graha Cinta","alamat":"Jl. Merdeka No. 123, Makassar","linkMaps":"https://maps.google.com/?q=Gedung+Serbaguna+Graha+Cinta+Makassar","rangkaian":[{"waktu":"10.00","acara":"Registrasi & ramah tamah"},{"waktu":"10.30","acara":"Pembukaan & doa bersama"},{"waktu":"11.00","acara":"Sambutan keluarga"},{"waktu":"11.30","acara":"Pemotongan tumpeng"},{"waktu":"12.00","acara":"Santap siang & hiburan"}],"nomorWA":"6281234567890","penutup":"Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir. Atas kehadiran serta doa yang diberikan, kami mengucapkan terima kasih.","tertanda":"Hormat kami,\nKeluarga Besar Suryana"},"palette":["#2a0e17","#3d1420","#6B1F2E","#C9A24B","#e8c877"]},{"id":"grand-opening","name":"Grand Opening","desc":"Peresmian usaha","lini":"formal","config":{"namaUsaha":"Kopi Senja","bidang":"Kopi & Resto","sambutan":"Dengan penuh sukacita kami mengumumkan pembukaan tempat usaha kami. Kehadiran Bapak/Ibu/Saudara/i akan menjadi kehormatan besar bagi kami untuk berbagi momen istimewa ini.","tanggal":"Sabtu, 1 November 2026","tanggalISO":"2026-11-01T09:00:00","waktu":"09.00 WITA — selesai","alamat":"Jl. Sunset No. 45, Makassar","alamatDetail":"Ruko Sunset Boulevard Blok A-12","linkMaps":"https://maps.google.com/?q=Jl.+Sunset+No.+45+Makassar","rangkaian":[{"waktu":"09.00","acara":"Registrasi tamu & welcome drink"},{"waktu":"09.30","acara":"Gunting pita peresmian"},{"waktu":"10.00","acara":"Sambutan manajemen"},{"waktu":"10.30","acara":"Tur lokasi & sesi foto"},{"waktu":"11.30","acara":"Ramah tamah"}],"kontak":"0812-3456-7890","instagram":"@kopisenja","nomorWA":"6281234567890","penutup":"Kehadiran Bapak/Ibu/Saudara/i merupakan dukungan yang sangat berarti bagi kami. Kami nantikan kehadiran Anda.","tertanda":"Manajemen Kopi Senja"},"palette":["#FFFFFF","#1F3A5F","#152a46","#E8912D","#f7e8d2"]}];
+
+/* ================= PENGATURAN ================= */
+const ORDER_CONFIG = {
+  waAdmin: "6283873489759",   // nomor WhatsApp admin Ajakin (0838-7348-9759, format 628xx)
+  harga: {
+    tpl_kasual: 35000,
+    tpl_formal: 149000,
+    custom_kasual: 80000,
+    custom_formal: 349000,
+    subscribe: 121000,
+  },
+  addonCustomSubscriber: 50000,  // custom kasual untuk subscriber
+  subscribeQuota: 10,            // maks undangan kasual per bulan
+};
+const PRODUCTS = {
+  tpl_kasual:    { nama: 'Template Kasual',  jenis: 'template' },
+  tpl_formal:    { nama: 'Template Formal',  jenis: 'template' },
+  custom_kasual: { nama: 'Custom Kasual',    jenis: 'custom' },
+  custom_formal: { nama: 'Custom Formal',    jenis: 'custom' },
+  subscribe:     { nama: 'Subscribe Kasual', jenis: 'subscribe' },
+};
+const rp = n => "Rp" + n.toLocaleString("id-ID");
+
+/* ================= STATE ================= */
+const order = { produk: null, templateId: null, data: {}, brief: {}, customer: {}, tamu: [] };
+let curStep = 1;
+const totalSteps = 5;
+function jenisProduk(){ return order.produk ? PRODUCTS[order.produk].jenis : null; }
+
+/* field CONFIG yang tidak ditanya ke customer (teknis / diisi agen) */
+const SKIP_KEYS = ['targetCountdown','tanggalISO','linkMaps','nomorWA','rekening','musik','nada','rangkaian','momen','tracks','kotakLucu','barang','opsiJalan','opsiMakan','opsiGenre','paragrafSurat','pesanTunggu'];
+function prettyLabel(k){ return k.replace(/([A-Z])/g,' $1').replace(/_/g,' ').replace(/^./,s=>s.toUpperCase()).trim(); }
+
+/* langkah mana saja yang dipakai tiap jenis produk */
+function stepsFor(jenis){
+  if(jenis==='template') return [1,2,3,4,5];
+  if(jenis==='custom')   return [1,2,4,5];   // langkah 2 = brief, lewati 3
+  return [1,4,5];                             // subscribe: langsung data diri
+}
+function nextStepAfter(n){
+  const s = stepsFor(jenisProduk());
+  const i = s.indexOf(n);
+  return s[i+1];
+}
+function prevStepBefore(n){
+  const s = stepsFor(jenisProduk());
+  const i = s.indexOf(n);
+  return s[i-1];
+}
+
+/* ================= UI ================= */
+function el(t,c,txt){ const e=document.createElement(t); if(c)e.className=c; if(txt!==undefined)e.textContent=txt; return e; }
+function renderSteps(){
+  const bar=document.getElementById('steps-bar'); bar.innerHTML='';
+  const labels={1:'Produk',2:jenisProduk()==='custom'?'Brief':'Template',3:'Data',4:'Kamu',5:'Kirim'};
+  stepsFor(jenisProduk()).forEach((i,idx)=>{
+    const d=el('div','s-dot'+(i===curStep?' active':idx<stepsFor(jenisProduk()).indexOf(curStep)?' done':''), String(idx+1));
+    d.title=labels[i]; bar.appendChild(d);
+  });
+}
+function show(n){
+  curStep=n;
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('show'));
+  document.getElementById('step'+n).classList.add('show');
+  // langkah 2: tampilkan template picker atau brief sesuai jenis
+  if(n===2){
+    const isCustom = jenisProduk()==='custom';
+    document.getElementById('step2-template').style.display = isCustom?'none':'';
+    document.getElementById('step2-brief').style.display = isCustom?'':'none';
+    if(!isCustom) renderTplGrid();
+  }
+  renderSteps();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function tplMeta(id){ return TEMPLATES_META.find(t=>t.id===id); }
+
+/* langkah 1 */
+document.querySelectorAll('.paket').forEach(p=>{
+  p.addEventListener('click',()=>{
+    document.querySelectorAll('.paket').forEach(x=>x.classList.remove('active'));
+    p.classList.add('active'); order.produk=p.dataset.produk;
+  });
+});
+document.querySelectorAll('[data-harga]').forEach(e=>{
+  const k=e.dataset.harga;
+  e.childNodes[0].textContent = rp(ORDER_CONFIG.harga[k]);
+});
+document.getElementById('next1').addEventListener('click',()=>{
+  if(!order.produk){ alert('Pilih produk dulu ya 👆'); return; }
+  show(nextStepAfter(1));
+});
+
+/* langkah 2 */
+function renderTplGrid(){
+  const jenis = order.produk==='tpl_formal' ? 'formal' : 'kasual';
+  for(const lini of ['kasual','formal']){
+    const g=document.getElementById('tpl-'+lini); g.innerHTML='';
+    // untuk template kasual hanya tampilkan lini kasual & sebaliknya
+    if(lini!==jenis) continue;
+    TEMPLATES_META.filter(t=>t.lini===lini).forEach(t=>{
+      const c=el('div','tpl'+(order.templateId===t.id?' active':''));
+      const dots=el('div','dots');
+      t.palette.forEach(col=>{ const i=el('i'); i.style.background=col; dots.appendChild(i); });
+      c.appendChild(dots); c.appendChild(el('b','',t.name)); c.appendChild(el('span','',t.desc));
+      c.addEventListener('click',()=>{
+        document.querySelectorAll('.tpl').forEach(x=>x.classList.remove('active'));
+        c.classList.add('active'); order.templateId=t.id; order.data={};
+      });
+      g.appendChild(c);
+    });
+  }
+}
+function validBrief(){
+  let ok=true;
+  document.querySelectorAll('#step2-brief .field[data-req]').forEach(f=>{
+    const inp=f.querySelector('input,textarea');
+    const valid=inp.value.trim().length>=2;
+    f.classList.toggle('invalid',!valid);
+    if(!valid) ok=false;
+  });
+  return ok;
+}
+document.getElementById('next2').addEventListener('click',()=>{
+  if(jenisProduk()==='custom'){
+    if(!validBrief()) return;
+    order.brief={
+      tema:document.getElementById('b-tema').value.trim(),
+      gaya:document.getElementById('b-gaya').value.trim(),
+      isi:document.getElementById('b-isi').value.trim(),
+      referensi:document.getElementById('b-ref').value.trim(),
+    };
+    show(nextStepAfter(2));
+  } else {
+    if(!order.templateId){ alert('Pilih template dulu ya 👆'); return; }
+    renderDataFields(); show(3);
+  }
+});
+document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>{
+  show(prevStepBefore(curStep));
+}));
+
+/* langkah 3: field dinamis dari CONFIG template */
+function renderDataFields(){
+  const box=document.getElementById('data-fields'); box.innerHTML='';
+  const cfg=tplMeta(order.templateId).config;
+  Object.entries(cfg).forEach(([k,v])=>{
+    if(SKIP_KEYS.includes(k)) return;
+    if(typeof v!=='string'&&typeof v!=='number') return;
+    const f=el('div','field');
+    f.appendChild(el('label','',prettyLabel(k)));
+    let inp;
+    if(String(v).length>90){ inp=el('textarea'); }
+    else { inp=el('input'); inp.type='text'; }
+    inp.value=v; inp.dataset.key=k;
+    inp.addEventListener('input',()=>{ order.data[k]=inp.value; });
+    order.data[k]=v;
+    f.appendChild(inp); box.appendChild(f);
+  });
+  const note=el('div','note');
+  note.textContent='💡 Pilihan (tempat, makanan, lagu, dll) bisa ditentukan nanti — kami bantu via WhatsApp';
+  box.appendChild(note);
+}
+document.getElementById('next3').addEventListener('click',()=>show(nextStepAfter(3)));
+
+/* langkah 4 */
+function validCustomer(){
+  let ok=true;
+  document.querySelectorAll('#step4 .field[data-req]').forEach(f=>{
+    const inp=f.querySelector('input');
+    const valid=inp.value.trim().length>=2;
+    f.classList.toggle('invalid',!valid);
+    if(!valid) ok=false;
+  });
+  return ok;
+}
+document.getElementById('next4').addEventListener('click',()=>{
+  if(!validCustomer()) return;
+  order.customer={ nama:document.getElementById('c-nama').value.trim(),
+    wa:document.getElementById('c-wa').value.trim(),
+    email:document.getElementById('c-email').value.trim() };
+  order.tamu=document.getElementById('c-tamu').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  renderSummary(); show(5);
+});
+
+/* langkah 5 */
+function orderTotal(){ return ORDER_CONFIG.harga[order.produk]; }
+function renderSummary(){
+  const box=document.getElementById('summary-box'); box.innerHTML='';
+  box.appendChild(el('h3','','Order'));
+  const jenis=jenisProduk();
+  const rows=[
+    ['Produk', PRODUCTS[order.produk].nama],
+  ];
+  if(jenis==='template'){
+    rows.push(['Template', tplMeta(order.templateId).name]);
+  } else if(jenis==='custom'){
+    if(order.brief.tema) rows.push(['Tema', order.brief.tema]);
+    if(order.brief.gaya) rows.push(['Gaya', order.brief.gaya]);
+    if(order.brief.referensi) rows.push(['Referensi', order.brief.referensi]);
+  } else {
+    rows.push(['Kuota', `Maks ${ORDER_CONFIG.subscribeQuota} undangan kasual/bulan`]);
+    rows.push(['Custom', `+${rp(ORDER_CONFIG.addonCustomSubscriber)}/order untuk subscriber`]);
+    rows.push(['Pembayaran', 'Manual per bulan via WhatsApp']);
+  }
+  rows.push(['Nama', order.customer.nama], ['WhatsApp', order.customer.wa]);
+  if(order.customer.email) rows.push(['Email', order.customer.email]);
+  if(order.tamu.length) rows.push(['Tamu QR check-in', order.tamu.length + ' orang (nama lengkap ikut terkirim via WA)']);
+  if(jenis==='template'){
+    Object.entries(order.data).forEach(([k,v])=>{ if(String(v).trim()) rows.push([prettyLabel(k), String(v)]); });
+  } else if(jenis==='custom'){
+    rows.push(['Isi undangan', order.brief.isi]);
+  }
+  rows.forEach(([k,v])=>{
+    const r=el('div','srow'); r.appendChild(el('div','k',k)); r.appendChild(el('div','v',v));
+    box.appendChild(r);
+  });
+  const t=el('div','total');
+  t.appendChild(el('div','', jenis==='subscribe'?'Total /bulan':'Total'));
+  t.appendChild(el('div','v',rp(orderTotal())));
+  box.appendChild(t);
+}
+function orderJSON(){
+  return { produk:order.produk, jenis:jenisProduk(), template:order.templateId,
+    data:order.data, brief:order.brief, customer:order.customer, tamu:order.tamu, total:orderTotal(),
+    via:'ajakin-order-form', waktu:new Date().toISOString() };
+}
+document.getElementById('btn-wa').addEventListener('click',()=>{
+  const o=orderJSON();
+  const jenis=o.jenis;
+  const lines=[
+    '*ORDER AJAKIN* 💌',
+    'Produk: '+PRODUCTS[o.produk].nama,
+    o.template?('Template: '+tplMeta(o.template).name+' ('+o.template+')'):null,
+    'Nama: '+o.customer.nama, 'WA: '+o.customer.wa,
+    o.customer.email?('Email: '+o.customer.email):null,
+    '---',
+  ];
+  if(jenis==='template') Object.entries(o.data).forEach(([k,v])=>{ if(String(v).trim()) lines.push(prettyLabel(k)+': '+v); });
+  if(jenis==='custom'){
+    if(o.brief.tema) lines.push('Tema: '+o.brief.tema);
+    if(o.brief.gaya) lines.push('Gaya: '+o.brief.gaya);
+    if(o.brief.referensi) lines.push('Referensi: '+o.brief.referensi);
+    lines.push('Isi: '+o.brief.isi);
+  }
+  if(jenis==='subscribe') lines.push(`Catatan: maks ${ORDER_CONFIG.subscribeQuota} undangan kasual/bulan, bayar manual via WA`);
+  // Daftar tamu: kirim nama lengkap selama muat di batas aman URL wa.me.
+  // Kalau kepanjangan, kirim sebagian + customer menempel sisanya manual.
+  const MAX_WA_TEXT = 6000;
+  let tamuTerpotong = 0;
+  if(o.tamu.length){
+    lines.push('Tamu QR check-in: '+o.tamu.length+' orang');
+    const base=lines.filter(Boolean).join('\n')+'\n---\nTotal: '+rp(o.total)+(jenis==='subscribe'?'/bulan':'');
+    let daftar=[];
+    for(let i=0;i<o.tamu.length;i++){
+      const coba=daftar.concat([(i+1)+'. '+o.tamu[i]]);
+      if(encodeURIComponent(base+'\nDaftar tamu:\n'+coba.join('\n')).length>MAX_WA_TEXT){ tamuTerpotong=o.tamu.length-daftar.length; break; }
+      daftar=coba;
+    }
+    if(daftar.length){
+      lines.push('Daftar tamu:');
+      daftar.forEach(d=>lines.push(d));
+      if(tamuTerpotong) lines.push('…dan '+tamuTerpotong+' nama lainnya (ditempel manual setelah pesan ini)');
+    }
+  }
+  lines.push('---','Total: '+rp(o.total)+(jenis==='subscribe'?'/bulan':''));
+  const url='https://wa.me/'+ORDER_CONFIG.waAdmin+'?text='+encodeURIComponent(lines.filter(Boolean).join('\n'));
+  window.open(url,'_blank');
+  const doneBox=document.getElementById('done-msg');
+  doneBox.classList.add('show');
+  const tamuExtra=document.getElementById('tamu-extra');
+  if(tamuTerpotong){
+    document.getElementById('tamu-count').textContent=o.tamu.length;
+    tamuExtra.style.display='block';
+  } else {
+    tamuExtra.style.display='none';
+  }
+});
+
+function salinTamu(){
+  const teks=order.tamu.map((n,i)=>(i+1)+'. '+n).join('\n');
+  const ok=()=>{ document.getElementById('tamu-copied').style.display='block'; };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(teks).then(ok).catch(()=>{ fallbackSalin(teks); ok(); });
+  } else { fallbackSalin(teks); ok(); }
+}
+function fallbackSalin(teks){
+  const ta=document.createElement('textarea'); ta.value=teks; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  ta.remove();
+}
+
+/* init */
+renderTplGrid(); renderSteps(); show(1);
+</script>
+</body>
+</html>
