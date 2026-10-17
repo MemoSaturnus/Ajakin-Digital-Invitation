@@ -199,7 +199,6 @@
   <div class="step" id="step3">
     <h2>Data undangan</h2>
     <p class="sub">Isi yang kamu tahu — sisanya kami yang lengkapi</p>
-    <div style="margin-bottom:16px"><button type="button" class="prev-btn" id="view-step3" style="margin-top:0">👁 Lihat Live Template Ini</button></div>
     <div id="live-preview">
       <div class="cap">🔄 Pratinjau live — ikut berubah saat kamu mengetik</div>
       <div class="phone"><iframe id="live-frame" title="Pratinjau undangan"></iframe></div>
@@ -528,9 +527,6 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape') closePreview();
 });
 /* langkah 3: pratinjau template yang sedang diisi */
-document.getElementById('view-step3').addEventListener('click',()=>{
-  if(order.templateId) openPreview(order.templateId);
-});
 function validBrief(){
   let ok=true;
   document.querySelectorAll('#step2-brief .field[data-req]').forEach(f=>{
